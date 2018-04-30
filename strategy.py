@@ -121,3 +121,66 @@ class CorpusStrategy(Strategy):
         signal, freq = max(symbol_freq.items(), key=itemgetter(1))
         #???? need to consider freq equal
         return signal
+
+
+
+class BuyHoldStrategy(Strategy):
+    """Represents the buy-and-hold strategy.
+    
+    Subclass of 'Strategy', which overrides 'get_signal' method.
+    
+    Instance attributes:
+        - signals: A series of signals (pd.Series).
+    """
+    
+    def __init__(self):
+        """Initialization method.
+        """
+        self.signals = None
+    
+    def get_signal(self, test_price_ts):
+        """Get the signal from the price ts.
+        Args:
+            test_price_ts: The test price time series. 
+        """
+        pass
+        
+    def get_vectorized_signal(self, test_price_ts):
+        """A vectorized version of getting signals from the price ts.
+        Args:
+            test_price_ts: The test price time series.
+        """
+        self.signals = pd.Series('2', index=test_price_ts.index, name='signal')
+        
+
+
+class RandomGuessStrategy(Strategy):
+    """Represents the random guess strategy.
+    
+    Subclass of 'Strategy', which overrides 'get_signal' method.
+    
+    Instance attributes:
+        - signals: A series of signals (pd.Series).
+    """
+    
+    def __init__(self):
+        """Initialization method.
+        """
+        self.signals = None
+    
+    def get_signal(self, test_price_ts):
+        """Get the signal from the price ts.
+        Args:
+            test_price_ts: The test price time series. 
+        """
+        pass
+        
+    def get_vectorized_signal(self, test_price_ts):
+        """A vectorized version of getting signals from the price ts.
+        Args:
+            test_price_ts: The test price time series.
+        """
+        random_signals = np.random.randint(1, 3, len(test_price_ts))
+        random_signals = list(map(str, random_signals))
+        self.signals = pd.Series(random_signals, index=test_price_ts.index, 
+                                 name='signal')

@@ -6,7 +6,7 @@ Created on Mon Apr 23 17:31:45 2018
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+from collections import OrderedDict
 
 class Backtest:
     """Represents a backtest.
@@ -26,7 +26,7 @@ class Backtest:
         self.pnl = None
         self.equity_curve = None
     
-    def output_summary_stats(self, multi_pdf, rf=.0, periods=252):
+    def output_summary_stats(self, rf=.0, periods=252):
         """Create a list of summary statistics for the portfolio including 
         Total Return, Sharpe Ratio, Max Drawdown, Drawdown Duration and Winning
         Rate.
@@ -39,20 +39,19 @@ class Backtest:
         """
         self._calc_pnl()
         self._build_equity_curve()
-        self.equity_curve.plot(figsize=(20,15), fontsize=15)
-        multi_pdf.savefig()
-        plt.clf()
         total_return = self.equity_curve.iloc[-1]
         sharpe_ratio = self._calc_sharpe_ratio(rf, periods)
         max_dd = self._calc_max_drawdown()
         dd_duration = self._calc_max_drawdown_duration()
-        winning_rate = self._winning_rate()
-        stats = [("Total Return", "%0.2f%%" % ((total_return-1)*100)),
-                 ("Sharpe Ratio", "%0.4f" % sharpe_ratio),
-                 ("Max Drawdown", "%0.2f%%" % (max_dd*100)),
-                 ("Drawdown Duration", "%d" % dd_duration), 
-                 ("Winning Rate", "%0.2f%%" % (winning_rate*100))]
-        return stats
+        winning_rate = self._calc_winning_rate()
+        no_of_transactions = self._calc_no_of_transactions()
+        stats = [('Total Return', '{:0.2f}%'.format((total_return-1)*100)),
+                 ('Sharpe Ratio', '{:0.4f}'.format(sharpe_ratio)),
+                 ('Max Drawdown', '{:0.2f}%'.format(max_dd*100)),
+                 ('Drawdown Duration', '{:d}'.format(dd_duration)), 
+                 ('Winning Rate', '{:0.2f}%'.format(winning_rate*100)),
+                 ('No of Transactions', '{:d}'.format(no_of_transactions))]
+        return OrderedDict(stats)
     
     def _calc_pnl(self):
         """Calculates strategy P&L based on prices and positions. 
@@ -95,7 +94,7 @@ class Backtest:
         idx = np.where(duration==.0)
         return np.diff(idx).max()-1
     
-    def _winning_rate(self):
+    def _calc_winning_rate(self):
         """Calculate winning rates.
         Returns:
             A number represents winning rates.
@@ -105,3 +104,10 @@ class Backtest:
         ud[ud>0] = 1
         ud[ud<0] = -1
         return (ud==self.positions.shift(1)).sum()/(len(ud)-1)
+    
+    def _calc_no_of_transactions(self):
+        """Calculate number of transactions.
+        Returns:
+            A number represents the number of transactions.
+        """
+        return (self.positions.shift()!=self.positions).sum()

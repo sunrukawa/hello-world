@@ -31,12 +31,6 @@ class Data(ABC):
         """Read data.
         """
         raise NotImplementedError("Should implement read method first!")
-
-    @abstractmethod
-    def get_clean_price_ts(self, price_col): 
-        """Clean data and return a price time series.
-        """
-        raise NotImplementedError("Should implement clean method first!")
         
         
 
@@ -78,7 +72,6 @@ class CommodityFutureData(Data):
     'get_clean_price_ts' methods.
     
     Instance attributes:
-        - trading_time_slots: The trading time slots.
         - date: The date of the concatenated dataset.
     """
     
@@ -123,8 +116,26 @@ class CommodityFutureData(Data):
         return sorted(mc, key=itemgetter(0))
     
     @classmethod
-    def concat_data(cls, main_contracts, output_dir, data_dir, day_dir='day', 
-                   night_dir='night'):
+    def get_avail_main_contracts_files(cls, main_contracts, night_data_dir):
+        """Get the available main contract files for both day and night.
+        Args:
+            main_contracts: List of lists, containing main contracts.
+            night_data_dir: The directory of night commodity future data.
+        Returns:
+            A pd.Series of main contract files.
+        """
+        mc_files = pd.Series(['{}_{}.csv'.format(mc, date) 
+                             for date, mc in main_contracts])
+        mcs = pd.Series(list(zip(*main_contracts))[1])
+        idx = ~((mcs!=mcs.shift())&(mcs!=mcs.shift(-1)))
+        mc_files = mc_files[idx]
+        night_data_files = os.listdir(night_data_dir)
+        idx = mc_files.map(lambda x: x in night_data_files)
+        mc_files = mc_files[idx]
+        return mc_files
+    
+    @classmethod
+    def concat_data(cls, main_contract_files, output_dir, day_dir, night_dir):
         """Concatenate day and night future data.
         Args:
             main_contracts: List of lists or ndarray, with dim(-1, 2).
@@ -134,21 +145,17 @@ class CommodityFutureData(Data):
             day_dir: The relative path of day commodity future data.
             night_dir: The relative path of night commodity future data.
         """
-        for date, mc in main_contracts:
-            df_day = pd.read_csv(os.path.join(data_dir, day_dir, 
-                                              '{}_{}.csv'.format(mc, date)))
-            df_night = pd.read_csv(os.path.join(data_dir, night_dir, 
-                                                '{}_{}.csv'.format(mc, date)))
+        for mc_file in main_contract_files:
+            df_day = pd.read_csv(os.path.join(day_dir, mc_file))
+            df_night = pd.read_csv(os.path.join(night_dir, mc_file))
             df = pd.concat([df_day, df_night], ignore_index=True)
             df.to_csv(os.path.join(output_dir, 
-                                   '{}_{}_concat.csv'.format(mc, date)))
+                                '{}_concat.csv'.format(mc_file.split('.')[0])))
     
-    def __init__(self, trading_time_slots, outliers):
+    def __init__(self):
         """Initialization method.
         """
         super().__init__()
-        self.trading_time_slots = trading_time_slots
-        self.outliers = outliers
         self.date = None
     
     def read(self, concat_data_dir):
@@ -160,7 +167,7 @@ class CommodityFutureData(Data):
         self.data = pd.read_csv(concat_data_dir)
         self.date = concat_data_dir.split('_')[1]
         
-    def get_clean_price_ts(self, price_col):
+    def get_clean_price_ts(self, price_col, trading_time_slots, outliers):
         """Clean data and return a price time series.        
         Args:
             price_col: The column is used to clean the dataset and to be 
@@ -172,24 +179,24 @@ class CommodityFutureData(Data):
         df['Date'] = pd.to_datetime(df['Date'], format='%Y%m%d')
         df['TS'] = df['Date'] + pd.to_timedelta(df['UpdateTime'])
         df = df.set_index('TS')
-        timestamps = self._get_timestamps()
+        timestamps = self._get_timestamps(trading_time_slots)
         df = df[(df.index>=timestamps[0])&(df.index<=timestamps[-1])]
         df = df[~((df.index>timestamps[1])&(df.index<timestamps[2]))]
         df = df[~((df.index>timestamps[3])&(df.index<timestamps[4]))]
         df = df[~((df.index>timestamps[5])&(df.index<timestamps[6]))]  
-        df = df[~df['BidPrice1'].isin(self.outliers)]
-        df = df[~df['AskPrice1'].isin(self.outliers)]
+        df = df[~df['BidPrice1'].isin(outliers)]
+        df = df[~df['AskPrice1'].isin(outliers)]
         df[price_col] = (df['BidPrice1'] + df['AskPrice1']) / 2
         df = df[df[price_col].shift()!=df[price_col]]
         return df[price_col]
             
-    def _get_timestamps(self):
+    def _get_timestamps(self, trading_time_slots):
         """Convert 'date' and 'trading_time_slots' to corresponding Timestamps.
         Returns:
             A list of Timestamps.
         """
         timestamps = []
-        for time in self.trading_time_slots:
+        for time in trading_time_slots:
             timestamps.append(pd.Timestamp(self.date)+pd.Timedelta(time))
         timestamps[-1] = timestamps[-1] + pd.Timedelta(1, unit='D')
         return timestamps

@@ -80,19 +80,24 @@ class Backtest:
         Returns:
             A number represents maximum drawdown.
         """
-        return 1-(self.equity_curve/self.equity_curve.expanding(min_periods=1)
-                  .max()).min()
+        return 1-min(self.equity_curve/self.equity_curve.cummax())
     
     def _calc_max_drawdown_duration(self):
         """Calculate mdd duration.
         Returns:
             A number represents maximum drawdown duration.
         """
-        roll_max = np.maximum.accumulate(self.equity_curve)
-        duration = self.equity_curve-roll_max
-        duration.index = range(len(duration))
-        idx = np.where(duration==.0)
-        return np.diff(idx).max()-1
+        dd = self.equity_curve-self.equity_curve.cummax()
+        dd.index = range(len(dd))
+        idx = np.where(dd==0)[0]
+        # might double check
+        if len(idx) == 1:
+            return -1
+        mdd = np.diff(idx).max()
+        if mdd == 1:
+            return 0
+        else:
+            return mdd
     
     def _calc_winning_rate(self):
         """Calculate winning rates.

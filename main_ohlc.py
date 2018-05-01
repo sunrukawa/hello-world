@@ -6,7 +6,7 @@ Created on Mon Apr 23 16:46:25 2018
 """
 
 import os
-os.chdir(r'C:\Users\bs40027\Desktop\qsproject\bin')
+os.chdir('/Users/sunrukawa/Desktop/python/qishi_qr/bin/')
 
 from strategy import CorpusStrategy
 from data import OHLCData

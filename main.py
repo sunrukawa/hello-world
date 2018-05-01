@@ -6,7 +6,7 @@ Created on Mon Apr 23 16:46:25 2018
 """
 
 import os
-os.chdir(r'C:\Users\bs40027\Desktop\qsproject\bin')
+os.chdir('/Users/sunrukawa/Desktop/python/qishi_qr/bin/')
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -15,6 +15,7 @@ from strategy import CorpusStrategy, BuyHoldStrategy, RandomGuessStrategy
 from data import CommodityFutureData
 from portfolio import EqualWeightPort
 from backtest import Backtest
+from constants import trading_time_slots
 
 ###############################################################################
 #************************************ NLP *************************************
@@ -31,20 +32,23 @@ mc_files = CommodityFutureData.get_avail_main_contracts_files(main_contracts,
 CommodityFutureData.concat_data(mc_files, concat_dir, day_dir, night_dir)
 # process data
 n = 6
-trading_time_slots = ('09:00:00', '10:15:00', '10:30:00', '11:30:00', 
-                      '13:30:00', '15:00:00', '21:00:00', '02:30:00')
 outliers = (-1, 0)
-ag = CommodityFutureData()
+cft = 'rb'
+cf = CommodityFutureData()
 output_dir = '../output'
 multi_ec = PdfPages(os.path.join(output_dir, 'equity_curve_corpus.pdf'))
 multi_price = PdfPages(os.path.join(output_dir, 'price.pdf'))
 res = []
 files = os.listdir(concat_dir)
+# specific for macos
+files = sorted(files)[1:]
+#
 for file in files:
     file_date = file.split('_')[1]
     concat_data_dir = os.path.join(concat_dir, file)
-    ag.read(concat_data_dir)
-    price_ts = ag.get_clean_price_ts('MidPrice', trading_time_slots, outliers)
+    cf.read(concat_data_dir)
+    price_ts = cf.get_clean_price_ts('MidPrice', trading_time_slots[cft], 
+                                     outliers)
     price_ts.plot(figsize=(20,15), fontsize=15)
     multi_price.savefig()
     plt.clf()
@@ -78,8 +82,9 @@ res = []
 for file in files:
     file_date = file.split('_')[1]
     concat_data_dir = os.path.join(concat_dir, file)
-    ag.read(concat_data_dir)
-    price_ts = ag.get_clean_price_ts('MidPrice', trading_time_slots, outliers)
+    cf.read(concat_data_dir)
+    price_ts = cf.get_clean_price_ts('MidPrice', trading_time_slots[cft], 
+                                     outliers)
     split_time = pd.Timestamp(file_date) + pd.Timedelta('13:30:00')
     train_ts = price_ts[:split_time]
     test_ts = price_ts[split_time:]
@@ -105,8 +110,9 @@ res = []
 for file in files:
     file_date = file.split('_')[1]
     concat_data_dir = os.path.join(concat_dir, file)
-    ag.read(concat_data_dir)
-    price_ts = ag.get_clean_price_ts('MidPrice', trading_time_slots, outliers)
+    cf.read(concat_data_dir)
+    price_ts = cf.get_clean_price_ts('MidPrice', trading_time_slots[cft],
+                                     outliers)
     split_time = pd.Timestamp(file_date) + pd.Timedelta('13:30:00')
     train_ts = price_ts[:split_time]
     test_ts = price_ts[split_time:]

@@ -33,7 +33,7 @@ CommodityFutureData.concat_data(mc_files, concat_dir, day_dir, night_dir)
 # process data
 n = 6
 outliers = (-1, 0)
-cft = 'rb'
+cft = 'bu'
 cf = CommodityFutureData()
 output_dir = '../output'
 multi_ec = PdfPages(os.path.join(output_dir, 'equity_curve_corpus.pdf'))

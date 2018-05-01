@@ -198,6 +198,7 @@ class CommodityFutureData(Data):
         timestamps = []
         for time in trading_time_slots:
             timestamps.append(pd.Timestamp(self.date)+pd.Timedelta(time))
-        timestamps[-1] = timestamps[-1] + pd.Timedelta(1, unit='D')
+        if pd.Timedelta(trading_time_slots[-1]) < pd.Timedelta('12:00:00'):
+            timestamps[-1] = timestamps[-1] + pd.Timedelta(1, unit='D')
         return timestamps
     

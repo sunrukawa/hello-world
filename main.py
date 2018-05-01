@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 from strategy import CorpusStrategy, BuyHoldStrategy, RandomGuessStrategy
-from data  import CommodityFutureData
+from data import CommodityFutureData
 from portfolio import EqualWeightPort
 from backtest import Backtest
 

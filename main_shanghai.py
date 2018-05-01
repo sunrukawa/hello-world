@@ -6,7 +6,7 @@ Created on Mon Apr 23 16:46:25 2018
 """
 
 import os
-os.chdir(r'C:\Users\bs40027\Desktop\qsproject\bin')
+os.chdir('/Users/sunrukawa/Desktop/python/qishi_qr/bin/')
 
 from strategy import CorpusStrategy
 from data  import OHLCData
@@ -15,10 +15,10 @@ from backtest import Backtest
 
 n = 6
 # process data
-SHcomp = OHLCData()
+OHLC = OHLCData()
 data_dir = '../data/OHLC data/000001.SS.csv'
-SHcomp.read(data_dir)
-price_ts = SHcomp.get_clean_price_ts('Adj Close')
+OHLC.read(data_dir)
+price_ts = OHLC.get_clean_price_ts('Adj Close')
 train_ts = price_ts['1995':'2004']
 test_ts = price_ts['2005':'2013']
 # create strategy

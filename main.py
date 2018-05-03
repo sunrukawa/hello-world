@@ -20,28 +20,31 @@ from constants import trading_time_slots
 ###############################################################################
 #************************************ NLP *************************************
 # preprocess data
-data_dir = '../data/future data'
+cft = 'zn'
+future_data_dir = '../data/future data'
+data_dir = os.path.join(future_data_dir, cft)
 day_dir = os.path.join(data_dir, 'day')
 night_dir = os.path.join(data_dir, 'night')
-concat_dir = os.path.join(data_dir, 'concat')
+concat_dir = os.path.join(data_dir, 'subconcat')
 if not os.path.exists(concat_dir):
     os.makedirs(concat_dir)
-main_contracts = CommodityFutureData.get_main_contracts(day_dir)
-mc_files = CommodityFutureData.get_avail_main_contracts_files(main_contracts,
-                                                              night_dir)
-CommodityFutureData.concat_data(mc_files, concat_dir, day_dir, night_dir)
+    main_contracts = CommodityFutureData.get_main_contracts(day_dir)
+    mc_files = CommodityFutureData.get_avail_main_contracts_files(
+                                                     main_contracts, night_dir)
+    CommodityFutureData.concat_data(mc_files, concat_dir, day_dir, night_dir)
 # process data
 n = 6
 outliers = (-1, 0)
-cft = 'zn'
 cf = CommodityFutureData()
 output_dir = '../output'
 multi_ec = PdfPages(os.path.join(output_dir, 'equity_curve_corpus.pdf'))
 multi_price = PdfPages(os.path.join(output_dir, 'price.pdf'))
 res = []
 files = os.listdir(concat_dir)
-# specific for macos
-files = sorted(files)[1:]
+# specific for macOS
+files = sorted(files)
+if files[0].startswith('.'):
+    files = files[1:]
 #
 for file in files:
     file_date = file.split('_')[1]

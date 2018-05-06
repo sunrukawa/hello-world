@@ -184,3 +184,74 @@ class RandomGuessStrategy(Strategy):
         random_signals = list(map(str, random_signals))
         self.signals = pd.Series(random_signals, index=test_price_ts.index, 
                                  name='signal')
+
+
+
+class SimpleMeanRevertingStrategy(Strategy):
+    """Represents the random guess strategy.
+    
+    Subclass of 'Strategy', which overrides 'get_signal' method.
+    
+    Instance attributes:
+        - signals: A series of signals (pd.Series).
+    """
+    
+    def __init__(self):
+        """Initialization method.
+        """
+        self.signals = None
+    
+    def get_signal(self, test_price_ts):
+        """Get the signal from the price ts.
+        Args:
+            test_price_ts: The test price time series. 
+        """
+        pass
+        
+    def get_vectorized_signal(self, test_price_ts):
+        """A vectorized version of getting signals from the price ts.
+        Args:
+            test_price_ts: The test price time series.
+        """
+        if isinstance(test_price_ts, pd.Series):
+            ret = test_price_ts.pct_change().dropna()
+        else:
+            ret = pd.Series(test_price_ts).pct_change().dropna()
+        signals = pd.Series(index=test_price_ts.index, name='signal')
+        signals.iloc[1:] = np.where(ret<0, '2', '1')
+        self.signals = signals
+
+
+class SimpleTrendingStrategy(Strategy):
+    """Represents the random guess strategy.
+    
+    Subclass of 'Strategy', which overrides 'get_signal' method.
+    
+    Instance attributes:
+        - signals: A series of signals (pd.Series).
+    """
+    
+    def __init__(self):
+        """Initialization method.
+        """
+        self.signals = None
+    
+    def get_signal(self, test_price_ts):
+        """Get the signal from the price ts.
+        Args:
+            test_price_ts: The test price time series. 
+        """
+        pass
+        
+    def get_vectorized_signal(self, test_price_ts):
+        """A vectorized version of getting signals from the price ts.
+        Args:
+            test_price_ts: The test price time series.
+        """
+        if isinstance(test_price_ts, pd.Series):
+            ret = test_price_ts.pct_change().dropna()
+        else:
+            ret = pd.Series(test_price_ts).pct_change().dropna()
+        self.signals = pd.Series(np.where(ret>0, '2', '1'), index=ret.index,
+                                 name='signal')
+

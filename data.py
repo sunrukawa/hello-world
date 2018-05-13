@@ -152,10 +152,11 @@ class CommodityFutureData(Data):
             df.to_csv(os.path.join(output_dir, 
                                 '{}_concat.csv'.format(mc_file.split('.')[0])))
     
-    def __init__(self):
+    def __init__(self, future_product):
         """Initialization method.
         """
         super().__init__()
+        self.future_product = future_product
         self.date = None
     
     def read(self, concat_data_dir):

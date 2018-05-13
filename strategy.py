@@ -14,7 +14,8 @@ from operator import itemgetter
 class Strategy(ABC):
     """Represents a strategy.
     
-    Subclasses need to override the 'get_signal' method.
+    Subclasses need to override the 'get_signal' and get_vectorized_signals 
+    methods.
     """
     
     @abstractmethod
@@ -25,12 +26,22 @@ class Strategy(ABC):
         """
         raise NotImplementedError("Should implement get_signal method first!")
         
+    @abstractmethod
+    def get_vectorized_signals(self, price_ts): 
+        """A vectorized version of getting signals from the price ts.
+        Args:
+            price_ts: A price time series.
+        """
+        raise NotImplementedError("Should implement get_vectorized_signals \
+                                  method first!")
+        
         
         
 class CorpusStrategy(Strategy):
     """Represents the NLP strategy.
     
-    Subclass of 'Strategy', which overrides 'get_signal' method.
+    Subclass of 'Strategy', which overrides 'get_signal' and 
+    'get_vectorized_signals' methods.
     
     Instance attributes:
         - n: Number of order.
@@ -60,7 +71,7 @@ class CorpusStrategy(Strategy):
         symbol_str = self._get_symbol(test_price_ts)
         self.signal = self._retrieve_from_corpus(symbol_str)
         
-    def get_vectorized_signal(self, test_price_ts):
+    def get_vectorized_signals(self, test_price_ts):
         """A vectorized version of getting signals from the price ts.
         Args:
             test_price_ts: The test price time series.
@@ -127,7 +138,8 @@ class CorpusStrategy(Strategy):
 class BuyHoldStrategy(Strategy):
     """Represents the buy-and-hold strategy.
     
-    Subclass of 'Strategy', which overrides 'get_signal' method.
+    Subclass of 'Strategy', which overrides 'get_signal' and 
+    'get_vectorized_signals' methods.
     
     Instance attributes:
         - signals: A series of signals (pd.Series).
@@ -145,7 +157,7 @@ class BuyHoldStrategy(Strategy):
         """
         pass
         
-    def get_vectorized_signal(self, test_price_ts):
+    def get_vectorized_signals(self, test_price_ts):
         """A vectorized version of getting signals from the price ts.
         Args:
             test_price_ts: The test price time series.
@@ -157,7 +169,8 @@ class BuyHoldStrategy(Strategy):
 class RandomGuessStrategy(Strategy):
     """Represents the random guess strategy.
     
-    Subclass of 'Strategy', which overrides 'get_signal' method.
+    Subclass of 'Strategy', which overrides 'get_signal' and 
+    'get_vectorized_signals' methods.
     
     Instance attributes:
         - signals: A series of signals (pd.Series).
@@ -175,7 +188,7 @@ class RandomGuessStrategy(Strategy):
         """
         pass
         
-    def get_vectorized_signal(self, test_price_ts):
+    def get_vectorized_signals(self, test_price_ts):
         """A vectorized version of getting signals from the price ts.
         Args:
             test_price_ts: The test price time series.
@@ -188,9 +201,10 @@ class RandomGuessStrategy(Strategy):
 
 
 class SimpleMeanRevertingStrategy(Strategy):
-    """Represents the random guess strategy.
+    """Represents the simple mean reverting strategy.
     
-    Subclass of 'Strategy', which overrides 'get_signal' method.
+    Subclass of 'Strategy', which overrides 'get_signal' and 
+    'get_vectorized_signals' methods.
     
     Instance attributes:
         - signals: A series of signals (pd.Series).
@@ -208,7 +222,7 @@ class SimpleMeanRevertingStrategy(Strategy):
         """
         pass
         
-    def get_vectorized_signal(self, test_price_ts):
+    def get_vectorized_signals(self, test_price_ts):
         """A vectorized version of getting signals from the price ts.
         Args:
             test_price_ts: The test price time series.
@@ -222,10 +236,12 @@ class SimpleMeanRevertingStrategy(Strategy):
         self.signals = signals
 
 
-class SimpleTrendingStrategy(Strategy):
-    """Represents the random guess strategy.
+
+class SimpleMomentumStrategy(Strategy):
+    """Represents the simple momentum strategy.
     
-    Subclass of 'Strategy', which overrides 'get_signal' method.
+    Subclass of 'Strategy', which overrides 'get_signal' and 
+    'get_vectorized_signals' methods.
     
     Instance attributes:
         - signals: A series of signals (pd.Series).
@@ -243,7 +259,7 @@ class SimpleTrendingStrategy(Strategy):
         """
         pass
         
-    def get_vectorized_signal(self, test_price_ts):
+    def get_vectorized_signals(self, test_price_ts):
         """A vectorized version of getting signals from the price ts.
         Args:
             test_price_ts: The test price time series.
@@ -252,6 +268,6 @@ class SimpleTrendingStrategy(Strategy):
             ret = test_price_ts.pct_change().dropna()
         else:
             ret = pd.Series(test_price_ts).pct_change().dropna()
-        self.signals = pd.Series(np.where(ret>0, '2', '1'), index=ret.index,
-                                 name='signal')
-
+        signals = pd.Series(index=test_price_ts.index, name='signal')
+        signals.iloc[1:] = np.where(ret>0, '2', '1')
+        self.signals = signals

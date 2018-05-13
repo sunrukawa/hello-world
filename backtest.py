@@ -26,22 +26,22 @@ class Backtest:
         self.pnl = None
         self.equity_curve = None
     
-    def output_summary_stats(self, rf=.0, periods=252, compound=False, 
-                             commission_fee=0):
+    def output_summary_stats(self, rf, periods, compound, commission_fee=0):
         """Create a list of summary statistics for the portfolio including 
         Total Return, Sharpe Ratio, Max Drawdown, Drawdown Duration and Winning
         Rate.
         Args:
             rf: Risk free rate.
-            periods: Number of days in a year.
-            pdf: matplotlib pdf object.
+            periods: Scaling parameter to calculate annualized sharpe ratio.
+            compound: A bool variable indicating whehter calculates compound 
+                return or not.
+            commission_fee: A number represents the commission fee.
         Returns:
             A summary statistics.
         """
         no_of_transactions, cf_vec = self._calc_transactions(commission_fee)
-        self._calc_pnl(cf_vec)
+        self._calc_pnl(compound, cf_vec)
         self._build_equity_curve(compound)
-
         total_return = self.equity_curve.iloc[-1]
         sharpe_ratio = self._calc_sharpe_ratio(rf, periods)
         max_dd = self._calc_max_drawdown()
@@ -55,18 +55,32 @@ class Backtest:
                  ('No of Transactions', '{:d}'.format(no_of_transactions))]
         return OrderedDict(stats)
     
-    def _calc_pnl(self, commission_fee_vec):
-        """Calculates strategy P&L based on prices and positions. 
-        """
-        self.pnl = self.prices.pct_change().multiply(self.positions.shift(1))
-        self.pnl.iloc[0] = 0
-        self.pnl -= commission_fee_vec
-    
-    def _build_equity_curve(self, compound):
-        """Build the equity curve.
+    def _calc_pnl(self, compound, commission_fee_vec):
+        """Calculates strategy P&L based on prices and positions.
+        Args:
+            compound: A bool variable indicating whehter calculates compound 
+                return or not.
+            commission_fee_vec: A vector of commission fees representing 
+                commission fee occurring on which date.
         """
         if compound:
-            self.equity_curve = (self.pnl+1).cumprod()
+            self.pnl = self.prices.pct_change() * self.positions.shift()
+            self.pnl.iloc[0] = 0
+            self.pnl -= commission_fee_vec 
+        else:
+            self.pnl = self.prices.diff() * self.positions.shift()
+            self.pnl.iloc[0] = 0
+            self.pnl -= commission_fee_vec * self.prices
+            self.pnl = self.pnl / self.prices[0]
+            
+    def _build_equity_curve(self, compound):
+        """Build the equity curve.
+        Args:
+            compound: A bool variable indicating whehter calculates compound 
+                return or not.
+        """
+        if compound:
+            self.equity_curve = (self.pnl+1).cumprod() 
         else:
             self.equity_curve = self.pnl.cumsum() + 1
         
@@ -118,11 +132,14 @@ class Backtest:
     
     def _calc_transactions(self, commission_fee):
         """Calculate number of transactions and commission fees.
+        Args:
+            commission_fee: A number represents the commission fee.
         Returns:
-            A number represents the number of transactions.
+            A number represents the number of transactions and a np.array
+            represents commissions fee when transaction happens. 
         """
         transactions = self.positions.shift()!=self.positions
         no_of_transactions = transactions.sum()
-        transactions_fee_vec = np.where(transactions, commission_fee, 0)
-        return no_of_transactions, transactions_fee_vec
+        commission_fee_vec = np.where(transactions, commission_fee, 0)
+        return no_of_transactions, commission_fee_vec
         

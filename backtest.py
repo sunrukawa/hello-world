@@ -26,7 +26,8 @@ class Backtest:
         self.pnl = None
         self.equity_curve = None
     
-    def output_summary_stats(self, rf=.0, periods=252):
+    def output_summary_stats(self, rf=.0, periods=252, compound=False, 
+                             commission_fee=0):
         """Create a list of summary statistics for the portfolio including 
         Total Return, Sharpe Ratio, Max Drawdown, Drawdown Duration and Winning
         Rate.
@@ -37,14 +38,15 @@ class Backtest:
         Returns:
             A summary statistics.
         """
-        self._calc_pnl()
-        self._build_equity_curve()
+        no_of_transactions, cf_vec = self._calc_transactions(commission_fee)
+        self._calc_pnl(cf_vec)
+        self._build_equity_curve(compound)
+
         total_return = self.equity_curve.iloc[-1]
         sharpe_ratio = self._calc_sharpe_ratio(rf, periods)
         max_dd = self._calc_max_drawdown()
         dd_duration = self._calc_max_drawdown_duration()
         winning_rate = self._calc_winning_rate()
-        no_of_transactions = self._calc_no_of_transactions()
         stats = [('Total Return', '{:0.2f}%'.format((total_return-1)*100)),
                  ('Sharpe Ratio', '{:0.4f}'.format(sharpe_ratio)),
                  ('Max Drawdown', '{:0.2f}%'.format(max_dd*100)),
@@ -53,16 +55,20 @@ class Backtest:
                  ('No of Transactions', '{:d}'.format(no_of_transactions))]
         return OrderedDict(stats)
     
-    def _calc_pnl(self):
+    def _calc_pnl(self, commission_fee_vec):
         """Calculates strategy P&L based on prices and positions. 
         """
         self.pnl = self.prices.pct_change().multiply(self.positions.shift(1))
         self.pnl.iloc[0] = 0
+        self.pnl -= commission_fee_vec
     
-    def _build_equity_curve(self):
+    def _build_equity_curve(self, compound):
         """Build the equity curve.
         """
-        self.equity_curve = (self.pnl+1).cumprod()
+        if compound:
+            self.equity_curve = (self.pnl+1).cumprod()
+        else:
+            self.equity_curve = self.pnl.cumsum() + 1
         
     def _calc_sharpe_ratio(self, rf, periods):
         """Create the Sharpe ratio for the returns.
@@ -110,9 +116,13 @@ class Backtest:
         ud[ud<0] = -1
         return (ud==self.positions.shift(1)).sum()/(len(ud)-1)
     
-    def _calc_no_of_transactions(self):
-        """Calculate number of transactions.
+    def _calc_transactions(self, commission_fee):
+        """Calculate number of transactions and commission fees.
         Returns:
             A number represents the number of transactions.
         """
-        return (self.positions.shift()!=self.positions).sum()
+        transactions = self.positions.shift()!=self.positions
+        no_of_transactions = transactions.sum()
+        transactions_fee_vec = np.where(transactions, commission_fee, 0)
+        return no_of_transactions, transactions_fee_vec
+        
